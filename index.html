@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FrameMorrow predicts future information needs with prospective tokens and selects useful historical frames for long-horizon video generation.">
+  <meta name="theme-color" content="#fbfaf7">
+  <meta property="og:title" content="FrameMorrow — Remember what matters next">
+  <meta property="og:description" content="Future-guided frame selection with prospective tokens for long-horizon video generation.">
+  <title>FrameMorrow | Future-Guided Frame Selection</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><nav class="nav wrap" aria-label="Main navigation">
+  <a class="brand" href="#"><svg width="29" height="28" viewBox="0 0 29 28" aria-hidden="true"><rect x="2" y="3" width="17" height="17" rx="3" fill="#e1ebef" stroke="currentColor" stroke-width="2"/><rect x="10" y="10" width="17" height="17" rx="3" fill="#efb083" stroke="currentColor" stroke-width="2"/></svg>FrameMorrow<span class="brand-dot">.</span></a>
+  <div class="nav-links"><a href="#results">Results</a><a href="#idea">The idea</a><a href="#method">Method</a></div>
+</nav></header>
+<main id="main">
+  <section class="hero wrap" aria-labelledby="title">
+    <p class="eyebrow"><span></span> A memory for what comes next</p>
+    <h1 id="title">Frame<span>Morrow</span></h1>
+    <p class="paper-title">Future-Guided Frame Selection with Prospective Tokens<br class="desktop-break"> for Long-Horizon Video Generation</p>
+    <div class="authors"><a href="https://openreview.net/profile?id=~Bo_Yin2">Bo Yin</a><a href="https://openreview.net/profile?id=~Xiaobin_Hu1">Xiaobin Hu</a><a href="https://openreview.net/profile?id=~Jiaqi_Zhao3">Jiaqi Zhao</a><a href="https://openreview.net/profile?id=~Shuicheng_YAN3">Shuicheng Yan</a></div>
+    <p class="hero-description">Predict what future generation needs.<br>Retrieve the history that matters.</p>
+    <div class="hero-actions"><a class="button primary" href="https://openreview.net/pdf?id=5oQB8QNU1R" target="_blank" rel="noopener">Read the paper <span aria-hidden="true">↗</span></a><a class="button secondary" href="https://openreview.net/forum?id=5oQB8QNU1R" target="_blank" rel="noopener">OpenReview <span aria-hidden="true">↗</span></a><a class="button text-button" href="#results">Watch results <span aria-hidden="true">↓</span></a></div>
+  </section>
+
+  <section class="results wrap" id="results" aria-labelledby="results-title">
+    <div class="section-heading"><div><p class="eyebrow">See the difference</p><h2 id="results-title">Same backbone. Better memory.</h2></div><p class="section-aside">Native generation alongside<br>generation with FrameMorrow.</p></div>
+    <div class="task-tabs" role="group" aria-label="Choose a comparison">
+      <button class="task-tab active" aria-pressed="true" data-case="causal-forcing"><span>01</span> Long video <small>Causal Forcing</small></button>
+      <button class="task-tab" aria-pressed="false" data-case="longlive2"><span>02</span> Interactive video <small>LongLive 2.0</small></button>
+      <button class="task-tab" aria-pressed="false" data-case="worldmem"><span>03</span> World model <small>WorldMem</small></button>
+    </div>
+    <div class="comparison" aria-busy="false">
+      <div class="video-grid">
+        <figure class="video-panel native"><figcaption><span class="legend-dot"></span><span>Native backbone</span><span class="backbone">Causal Forcing</span></figcaption><video id="native-video" muted playsinline preload="none" poster="assets/causal-forcing-native.jpg" aria-label="Causal Forcing native generation"><source src="assets/causal-forcing-native.mp4" type="video/mp4"></video></figure>
+        <figure class="video-panel ours"><figcaption><span class="legend-dot"></span><span>+ FrameMorrow</span><span class="backbone">Causal Forcing</span></figcaption><video id="ours-video" muted playsinline preload="none" poster="assets/causal-forcing-framemorrow.jpg" aria-label="Causal Forcing with FrameMorrow"><source src="assets/causal-forcing-framemorrow.mp4" type="video/mp4"></video></figure>
+      </div>
+      <div class="player-controls"><button id="play" class="play-button" aria-label="Play both videos"><span id="play-icon" aria-hidden="true">▶</span><span id="play-label">Play comparison</span></button><label class="sr-only" for="timeline">Video position</label><input id="timeline" disabled type="range" min="0" max="59.81" step="0.05" value="0" aria-valuetext="0:00 of 0:59"><output id="time" for="timeline">0:00 / 0:59</output><label class="sr-only" for="speed">Playback speed</label><select id="speed"><option value="1">1× speed</option><option value="2">2× speed</option><option value="0.5">0.5× speed</option></select></div>
+      <p id="player-status" class="player-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="result-note"><span class="note-label" id="case-label">Long video generation</span><p id="case-note">Follow the subject and scene as the video progresses. Both videos use Causal Forcing, with historical frame selection added on the right.</p><span class="sync-note">Synchronized playback</span></div>
+    <noscript><p>Enable JavaScript to use synchronized playback, or watch the <a href="assets/causal-forcing-native.mp4">native video</a> and <a href="assets/causal-forcing-framemorrow.mp4">FrameMorrow video</a> directly.</p></noscript>
+  </section>
+
+  <section class="idea section wrap" id="idea" aria-labelledby="idea-title">
+    <div class="section-heading"><div><p class="eyebrow">The intuition</p><h2 id="idea-title">Relevant now <span class="not-equal">≠</span> useful next.</h2></div><p class="section-aside">Select history for future needs.</p></div>
+    <p class="section-intro">A corridor may match the current view. But returning to a room requires remembering its earlier appearance. FrameMorrow learns to retrieve historical evidence for the upcoming generation.</p>
+    <figure class="paper-figure"><a href="assets/intuition.png" target="_blank" rel="noopener" aria-label="Open the conceptual illustration at full resolution"><img src="assets/intuition.png" width="2610" height="1125" loading="lazy" alt="Conceptual illustration: context matching retrieves a corridor, while future-guided selection retrieves the earlier room and armchair needed for the next scene."></a><figcaption>Conceptual illustration of current similarity versus future usefulness.</figcaption></figure>
+  </section>
+
+  <section class="method section wrap" id="method" aria-labelledby="method-title">
+    <div class="section-heading"><div><p class="eyebrow">A compact future proxy</p><h2 id="method-title">Look ahead. Select history.</h2></div><p class="section-aside">No full future rollout required.</p></div>
+    <div class="method-steps">
+      <article><span class="step-number">01</span><h3>Anticipate information needs</h3><p>Prospective tokens summarize what may matter next, using available history, recent context, and the generation condition.</p></article>
+      <article><span class="step-number">02</span><h3>Retrieve explicit frames</h3><p>The tokens score historical candidates. A small set of selected frames carries relevant visual evidence forward.</p></article>
+      <article><span class="step-number">03</span><h3>Reuse across generators</h3><p>Selected frames enter each backbone through its own conditioning interface. The selector stays outside the generator.</p></article>
+    </div>
+    <figure class="paper-figure overview"><a href="assets/overview.png" target="_blank" rel="noopener" aria-label="Open the method overview at full resolution"><img src="assets/overview.png" width="1800" height="885" loading="lazy" alt="FrameMorrow overview: inference uses prospective tokens to select historical frames, while training distills future-derived teacher rankings into the selector."></a><figcaption>Realized future observations supervise the selector during training only. Inference uses available history and the current generation condition.</figcaption></figure>
+  </section>
+
+  <section class="scope section wrap" aria-labelledby="scope-title"><div class="scope-copy"><p class="eyebrow">One idea, multiple settings</p><h2 id="scope-title">Memory beyond a single generator.</h2><p>Evaluated across long-video generation, interactive generation, and action-conditioned world models.</p></div><div class="scope-stat"><strong>5</strong><span>benchmarks</span></div><div class="scope-stat"><strong>11</strong><span>generative models</span></div></section>
+</main>
+<footer class="wrap"><a class="brand" href="#">FrameMorrow<span class="brand-dot">.</span></a><p>Future-guided frame selection for long-horizon video generation.</p><a href="#main">Back to top ↑</a></footer>
+</body>
+</html>
