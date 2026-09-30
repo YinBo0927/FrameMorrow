@@ -9,14 +9,14 @@
   <meta property="og:description" content="Future-guided frame selection with prospective tokens for long-horizon video generation.">
   <title>FrameMorrow | Future-Guided Frame Selection</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=affiliations">
+  <link rel="stylesheet" href="style.css?v=results">
   <script src="script.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header"><nav class="nav wrap" aria-label="Main navigation">
   <a class="brand" href="#"><svg width="29" height="28" viewBox="0 0 29 28" aria-hidden="true"><rect x="2" y="3" width="17" height="17" rx="3" fill="#e1ebef" stroke="currentColor" stroke-width="2"/><rect x="10" y="10" width="17" height="17" rx="3" fill="#efb083" stroke="currentColor" stroke-width="2"/></svg>FrameMorrow<span class="brand-dot">.</span></a>
-  <div class="nav-links"><a href="#results">Results</a><a href="#idea">The idea</a><a href="#method">Method</a></div>
+  <div class="nav-links"><a href="#results">Results</a><a href="#idea">The idea</a><a href="#method">Method</a><a href="#benchmarks">Tables</a></div>
 </nav></header>
 <main id="main">
   <section class="hero wrap" aria-labelledby="title">
@@ -61,6 +61,78 @@
       <article><span class="step-number">03</span><h3>Reuse across generators</h3><p>Selected frames enter each backbone through its own conditioning interface. The selector stays outside the generator.</p></article>
     </div>
     <figure class="paper-figure overview"><a href="assets/overview.png" target="_blank" rel="noopener" aria-label="Open the method overview at full resolution"><img src="assets/overview.png" width="1800" height="885" loading="lazy" alt="FrameMorrow overview: inference uses prospective tokens to select historical frames, while training distills future-derived teacher rankings into the selector."></a><figcaption>Realized future observations supervise the selector during training only. Inference uses available history and the current generation condition.</figcaption></figure>
+  </section>
+
+  <section class="benchmarks section wrap" id="benchmarks" aria-labelledby="benchmarks-title">
+    <div class="section-heading"><div><p class="eyebrow">Quantitative results</p><h2 id="benchmarks-title">Measured across generators.</h2></div><p class="section-aside">Orange rows: + FrameMorrow<br>↑ Higher is better · ↓ Lower is better</p></div>
+    <details class="benchmark-panel" name="benchmarks" open><summary><span class="benchmark-number">01</span><span>Long video generation<small>MovieGenBench · 60 seconds</small></span></summary>
+<div class="table-scroll" role="region" aria-label="VBench-Long on 128 MovieGenBench prompts" tabindex="0"><table class="results-table" id="moviegen-results">
+<caption>VBench-Long on 128 MovieGenBench prompts</caption>
+<thead><tr><th scope="col">Model / method</th><th scope="col">Subject ↑</th><th scope="col">Background ↑</th><th scope="col">Motion ↑</th><th scope="col">Dynamic ↑</th><th scope="col">Aesthetic ↑</th><th scope="col">Imaging ↑</th><th scope="col">Avg. rank ↓</th></tr></thead>
+<tbody>
+<tr class="table-group"><th colspan="8" scope="rowgroup">Self-Forcing</th></tr>
+<tr class=""><th scope="row">Native</th><td>95.84</td><td>95.27</td><td>98.20</td><td>51.72</td><td>56.05</td><td>62.22</td><td>4.33</td></tr>
+<tr class=""><th scope="row">+∞-RoPE</th><td>97.24</td><td>96.24</td><td>98.58</td><td>46.64</td><td>56.09</td><td>63.28</td><td>3.17</td></tr>
+<tr class=""><th scope="row">+Deep Forcing</th><td>96.08</td><td>95.38</td><td>98.24</td><td>41.44</td><td>56.68</td><td>60.81</td><td>4.17</td></tr>
+<tr class=""><th scope="row">+LongLive-RAG</th><td>97.60</td><td><strong>96.51</strong></td><td><strong>98.70</strong></td><td>44.69</td><td>57.19</td><td>64.97</td><td>2.00</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>97.71</strong></td><td>96.45</td><td>98.60</td><td><strong>64.56</strong></td><td><strong>57.27</strong></td><td><strong>68.47</strong></td><td><strong>1.33</strong></td></tr>
+</tbody>
+<tbody>
+<tr class="table-group"><th colspan="8" scope="rowgroup">LongLive 1.0</th></tr>
+<tr class=""><th scope="row">Native</th><td>97.13</td><td>95.89</td><td>98.61</td><td>44.56</td><td>58.17</td><td>67.56</td><td>3.83</td></tr>
+<tr class=""><th scope="row">+∞-RoPE</th><td>97.00</td><td>95.85</td><td>98.53</td><td><strong>53.36</strong></td><td>57.48</td><td>66.94</td><td>4.25</td></tr>
+<tr class=""><th scope="row">+Deep Forcing</th><td>97.17</td><td>96.04</td><td>98.73</td><td>45.13</td><td>57.48</td><td>67.27</td><td>3.42</td></tr>
+<tr class=""><th scope="row">+LongLive-RAG</th><td><strong>97.32</strong></td><td>96.08</td><td>98.62</td><td>49.90</td><td>58.30</td><td>67.79</td><td>2.25</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>97.32</strong></td><td><strong>96.17</strong></td><td><strong>98.75</strong></td><td>50.42</td><td><strong>58.75</strong></td><td><strong>67.82</strong></td><td><strong>1.25</strong></td></tr>
+</tbody>
+<tbody>
+<tr class="table-group"><th colspan="8" scope="rowgroup">Causal Forcing</th></tr>
+<tr class=""><th scope="row">Native</th><td>93.52</td><td>94.12</td><td>95.74</td><td>72.32</td><td>51.24</td><td>62.30</td><td>4.83</td></tr>
+<tr class=""><th scope="row">+∞-RoPE</th><td>93.81</td><td>93.78</td><td>96.09</td><td><strong>92.47</strong></td><td>54.42</td><td>67.50</td><td>3.33</td></tr>
+<tr class=""><th scope="row">+Deep Forcing</th><td>94.27</td><td>94.18</td><td><strong>96.62</strong></td><td>78.59</td><td>52.12</td><td>64.25</td><td>3.17</td></tr>
+<tr class=""><th scope="row">+LongLive-RAG</th><td>94.29</td><td>94.24</td><td>96.48</td><td>88.20</td><td>54.95</td><td>68.16</td><td>2.33</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>94.54</strong></td><td><strong>94.28</strong></td><td>96.59</td><td>89.74</td><td><strong>56.27</strong></td><td><strong>68.76</strong></td><td><strong>1.33</strong></td></tr>
+</tbody>
+</table></div><p class="table-note">Bold marks the best score within each backbone. Average rank is computed across the six metrics; lower is better.</p>
+    </details>
+    <details class="benchmark-panel" name="benchmarks"><summary><span class="benchmark-number">02</span><span>Interactive video generation<small>Single-shot & multi-shot · 60 seconds</small></span></summary>
+<div class="table-scroll" role="region" aria-label="Interactive video generation" tabindex="0"><table class="results-table" id="interactive-results">
+<caption>Interactive video generation</caption>
+<thead><tr><th scope="col">Model / method</th><th scope="col">Quality ↑</th><th scope="col">Consistency ↑</th><th scope="col">Aesthetic ↑</th><th scope="col">Avg. CLIP ↑</th></tr></thead>
+<tbody>
+<tr class="table-group"><th colspan="5" scope="rowgroup">Single-shot</th></tr>
+<tr class="pair-start"><th scope="row">LongLive 1.0</th><td>83.49</td><td>92.62</td><td>64.21</td><td>28.75</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>84.06</strong></td><td><strong>93.21</strong></td><td><strong>64.56</strong></td><td><strong>29.08</strong></td></tr>
+<tr class="pair-start"><th scope="row">Self-Forcing</th><td>78.71</td><td>84.95</td><td>58.16</td><td>26.39</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>81.74</strong></td><td><strong>89.30</strong></td><td><strong>60.62</strong></td><td><strong>28.05</strong></td></tr>
+<tr class="pair-start"><th scope="row">Causal Forcing</th><td>76.00</td><td>80.46</td><td>55.45</td><td>24.53</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>78.66</strong></td><td><strong>83.48</strong></td><td><strong>58.75</strong></td><td><strong>25.24</strong></td></tr>
+<tr class="pair-start"><th scope="row">CausVid</th><td>81.94</td><td>89.77</td><td>63.53</td><td>28.63</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>82.26</strong></td><td><strong>90.52</strong></td><td><strong>63.64</strong></td><td><strong>29.03</strong></td></tr>
+</tbody>
+<tbody>
+<tr class="table-group"><th colspan="5" scope="rowgroup">Multi-shot</th></tr>
+<tr class="pair-start"><th scope="row">LongLive 2.0</th><td>82.77</td><td>93.14</td><td>61.32</td><td>28.35</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>83.18</strong></td><td><strong>93.49</strong></td><td><strong>61.68</strong></td><td><strong>28.44</strong></td></tr>
+<tr class="pair-start"><th scope="row">ShotStream</th><td>83.12</td><td>92.75</td><td><strong>62.30</strong></td><td>29.09</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>84.85</strong></td><td><strong>96.76</strong></td><td>61.74</td><td><strong>29.16</strong></td></tr>
+</tbody>
+</table></div><p class="table-note">Bold marks the better score within each backbone pair. Average CLIP score summarizes six consecutive 10-second segments.</p>
+    </details>
+    <details class="benchmark-panel" name="benchmarks"><summary><span class="benchmark-number">03</span><span>Interactive world models<small>Action-conditioned generation</small></span></summary>
+<div class="table-scroll" role="region" aria-label="Action-conditioned interactive world generation" tabindex="0"><table class="results-table" id="world-results">
+<caption>Action-conditioned interactive world generation</caption>
+<thead><tr><th scope="col">Model / method</th><th scope="col">Subject ↑</th><th scope="col">Background ↑</th><th scope="col">Imaging ↑</th><th scope="col">Anti-flicker ↑</th><th scope="col">Motion ↑</th><th scope="col">Action alignment ↑</th></tr></thead>
+<tbody>
+<tr class="pair-start"><th scope="row">Matrix-Game 3.0</th><td>0.801</td><td>0.894</td><td>68.20</td><td>0.936</td><td><strong>0.950</strong></td><td>0.842</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>0.816</strong></td><td><strong>0.910</strong></td><td><strong>68.35</strong></td><td><strong>0.939</strong></td><td>0.949</td><td><strong>0.861</strong></td></tr>
+<tr class="pair-start"><th scope="row">WorldMem</th><td>0.782</td><td>0.924</td><td>70.23</td><td>0.910</td><td>0.916</td><td>0.866</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>0.793</strong></td><td><strong>0.932</strong></td><td><strong>70.47</strong></td><td><strong>0.913</strong></td><td><strong>0.918</strong></td><td><strong>0.889</strong></td></tr>
+<tr class="pair-start"><th scope="row">YuMe 1.5</th><td>0.765</td><td>0.872</td><td>50.98</td><td>0.944</td><td>0.965</td><td>0.883</td></tr>
+<tr class="ours-row"><th scope="row">+FrameMorrow</th><td><strong>0.798</strong></td><td><strong>0.886</strong></td><td><strong>51.80</strong></td><td><strong>0.947</strong></td><td><strong>0.967</strong></td><td><strong>0.912</strong></td></tr>
+</tbody>
+</table></div><p class="table-note">Bold marks the better score within each backbone pair. Imaging uses a 0–100 scale; the other metrics lie in [0, 1].</p>
+    </details>
   </section>
 
   <section class="scope section wrap" aria-labelledby="scope-title"><div class="scope-copy"><p class="eyebrow">One idea, multiple settings</p><h2 id="scope-title">Memory beyond a single generator.</h2><p>Evaluated across long-video generation, interactive generation, and action-conditioned world models.</p></div><div class="scope-stat"><strong>5</strong><span>benchmarks</span></div><div class="scope-stat"><strong>11</strong><span>generative models</span></div></section>

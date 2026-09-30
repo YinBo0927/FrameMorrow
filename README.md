@@ -18,6 +18,7 @@ In repository **Settings → Pages**, choose **Deploy from a branch**, then **ma
 
 - Three synchronized native / FrameMorrow video comparisons: Causal Forcing, LongLive 2.0, and WorldMem.
 - Conceptual introduction figure and editable-project overview export.
+- Three expandable result tables: MovieGenBench, interactive video generation (aggregate metrics), and action-conditioned world models. Values were checked against Tables 1, 2 and 4 of the September 25 manuscript export (`ICLR2027_FrameMorrow.pdf`).
 - Video sources: the user's curated FrameMorrow supplementary clips. Website copies are H.264 re-encodes at CRF 20 with fast-start metadata, original resolution and timing, and no audio.
 - The introduction image is a conceptual illustration, not an experimental comparison.
 - The title and evaluation scope follow the provided manuscript. The author list and affiliations were supplied by the user. The paper button shows arXiv coming soon until a public arXiv link is available. The code button shows coming soon until the research implementation is released. This repository contains the project website, not the research implementation.
