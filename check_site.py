@@ -1,6 +1,7 @@
 """Small dependency-free check for the buildless project page."""
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlsplit
 import re
 
 root = Path(__file__).parent
@@ -22,7 +23,7 @@ for ref in page.references:
     if ref.startswith('#'):
         assert ref == '#' or ref[1:] in page.ids, f'Missing anchor: {ref}'
     elif not re.match(r'\w+:', ref):
-        assert (root / ref).is_file(), f'Missing asset: {ref}'
+        assert (root / urlsplit(ref).path).is_file(), f'Missing asset: {ref}'
 for case in page.cases:
     for variant in ('native', 'framemorrow'):
         for extension in ('mp4', 'jpg'):
