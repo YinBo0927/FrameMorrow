@@ -9,10 +9,7 @@
 </p>
 
 <p>
-  <a href="https://openreview.net/profile?id=~Bo_Yin2">Bo Yin</a>,
-  <a href="https://openreview.net/profile?id=~Xiaobin_Hu1">Xiaobin Hu</a>,
-  <a href="https://openreview.net/profile?id=~Jiaqi_Zhao3">Jiaqi Zhao</a>,
-  <a href="https://openreview.net/profile?id=~Shuicheng_YAN3">Shuicheng Yan</a>
+  Bo Yin, Xiaobin Hu, Jiaqi Zhao, Shuicheng Yan
 </p>
 
 <p>Official repository for <strong>FrameMorrow</strong>. Code will be released soon.</p>
@@ -65,7 +62,3 @@
   year={2026}
 }
 ```
-
-## Project Website
-
-The website lives in [`docs/`](docs/). See its [README](docs/README.md) for local preview instructions.
