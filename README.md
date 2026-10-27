@@ -9,7 +9,10 @@
 [![Hugging Face Daily Papers](https://img.shields.io/badge/Hugging%20Face-Daily%20Papers-FFD21E?logo=huggingface&logoColor=FFD21E)](https://huggingface.co/papers/2609.38839)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Bo Yin, Xiaobin Hu, Jiaqi Zhao, Shuicheng Yan
+<p>Bo Yin<sup>1</sup>, Xiaobin Hu<sup>1</sup>, Jiaqi Zhao<sup>1,2</sup>, Shuicheng Yan<sup>1</sup></p>
+
+<p><sup>1</sup> National University of Singapore<br>
+<sup>2</sup> Harbin Institute of Technology, Shenzhen</p>
 
 </div>
 
