@@ -1,0 +1,9 @@
+diffusers==0.36.0
+peft==0.17.1
+accelerate==1.11.0
+omegaconf==2.3.0
+einops==0.8.1
+easydict==1.13
+ftfy==6.3.1
+imageio==2.37.2
+imageio-ffmpeg==0.6.0

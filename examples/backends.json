@@ -1,0 +1,31 @@
+{
+  "wan": {
+    "repo": "Wan-AI/Wan2.1-T2V-1.3B",
+    "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a"
+  },
+  "self-forcing": {
+    "git": "https://github.com/guandeh17/Self-Forcing.git",
+    "commit": "33593df3e81fa3ec10239271dd2c100facac6de1",
+    "subdirectory": "",
+    "weights_repo": "gdhe17/Self-Forcing",
+    "weights_revision": "2f8b779212da279d212c22a509b66ad6552f350e",
+    "checkpoint": "checkpoints/self_forcing_dmd.pt",
+    "local_frames": 12,
+    "sink_frames": 1
+  },
+  "longlive": {
+    "git": "https://github.com/qixinhu11/LongLive-RAG.git",
+    "commit": "973884a3cd3ad4b314c3d4ab42274c52e7a0b22a",
+    "subdirectory": "",
+    "weights_repo": "Efficient-Large-Model/LongLive-1.3B",
+    "paths": ["wan", "utils", "configs", "pipeline", "ae"],
+    "weights_revision": "cda9138d93872ef109d9a74c270184eb3a5acc6e",
+    "checkpoint": "models/longlive_base.pt",
+    "lora": "models/lora.pt",
+    "local_frames": 12,
+    "sink_frames": 1,
+    "checkpoint_target": "checkpoints/longlive_base.pt",
+    "lora_target": "checkpoints/longlive_lora.pt",
+    "native_config": "configs/longlive_native.yaml"
+  }
+}

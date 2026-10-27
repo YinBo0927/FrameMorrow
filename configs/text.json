@@ -1,0 +1,12 @@
+{
+  "visual_dim": 768,
+  "condition_dim": 4096,
+  "hidden_dim": 512,
+  "layers": 4,
+  "heads": 8,
+  "ffn_dim": 2048,
+  "queries": 4,
+  "max_positions": 512,
+  "tau_q": 0.10,
+  "modality": "text"
+}

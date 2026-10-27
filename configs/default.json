@@ -1,0 +1,24 @@
+{
+  "data": {
+    "count": null,
+    "min_seconds": 0.0,
+    "min_aesthetic": null,
+    "val_fraction": 0.1,
+    "seed": 0,
+    "parts": null,
+    "revision": "main"
+  },
+  "inference": {
+    "k": 2
+  },
+  "training": {
+    "epochs": 5,
+    "batch_size": 64,
+    "accumulate": 1,
+    "lr": 0.0001,
+    "seed": 0,
+    "device": "cuda",
+    "precision": "bf16",
+    "workers": 4
+  }
+}
