@@ -1,6 +1,6 @@
 <div align="center">
 
-# FrameMorrow
+# <img src="docs/assets/favicon.svg" alt="FrameMorrow logo" width="32" height="32"> FrameMorrow
 
 **Future-Guided Frame Selection with Prospective Tokens for Long-Horizon Video Generation**
 
