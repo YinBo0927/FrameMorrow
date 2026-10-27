@@ -131,9 +131,6 @@ Uses 2 historical frames by default. Change this with `--k`. Each example saves 
 
 ## Results
 
-<details>
-<summary>Paper results</summary>
-
 <p align="center"><strong>Long video generation on MovieGenBench.</strong></p>
 
 <p align="center">
@@ -155,8 +152,6 @@ Uses 2 historical frames by default. Change this with `--k`. Each example saves 
 <p align="center">
   <img src="assets/main-results-world-models.png" alt="Visual quality, temporal quality and action alignment across three world models" width="900">
 </p>
-
-</details>
 
 ## Citation
 
