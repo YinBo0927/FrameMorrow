@@ -1,4 +1,4 @@
-"""Selected RGB -> native encoding -> Self-Forcing / LongLive conditioning.
+"""Self-Forcing KV history and LongLive RGB reference conditioning.
 
 Self-Forcing uses its stock rotated-K cache with a bounded local window.
 LongLive requires memory_indices and unrotated CPU history-bank hooks.
@@ -10,6 +10,7 @@ import math
 import torch
 
 from .data import validate_times
+from .self_forcing_kv import SelfForcingHistoryAdapter
 
 
 @torch.inference_mode()
@@ -184,85 +185,3 @@ class LongLiveHistoryAdapter:
             timestep=timestep, current_start=current_start,
             kv_cache=self.pipeline.kv_cache1, crossattn_cache=self.pipeline.crossattn_cache,
             **self.generator_kwargs(), **kwargs)
-
-
-class SelfForcingHistoryAdapter:
-    """Selected RGB -> native rotated KV -> an additional preserved history prefix.
-
-    Works with the stock Wan Self-Forcing local-attention cache. Call forward()
-    for BOTH denoising and clean-context updates. Each call temporarily extends
-    the native cache/sink/window by K reference frames, then commits only the
-    resulting local KV. No native source files are patched. Use serially between
-    chunks; do not call the generator concurrently with this adapter. Refresh
-    after resetting native caches or changing the conditioning prompt.
-
-    Reference RoPE uses chronological slots 0..K-1; observed timestamps remain
-    in metadata. Batch one, bounded local attention, and Wan T2V are supported.
-    """
-    def __init__(self, pipeline, max_references=4):
-        self.pipeline = pipeline
-        self.max_references = max_references
-        self.banks = None
-        self.timestamps, self.selected_indices = [], []
-        model = pipeline.generator.model
-        if model.training or isinstance(max_references, bool) or not isinstance(max_references, int) or max_references < 1:
-            raise ValueError('use an eval-mode Self-Forcing model and a positive integer reference budget')
-        self.attentions = [block.self_attn for block in model.blocks]
-        if not self.attentions or any(not type(a).__module__.endswith('.causal_model') or
-                                      a.local_attn_size < 1 for a in self.attentions):
-            raise ValueError('requires stock Self-Forcing rotated-K attention with a bounded local window')
-
-    def _caches(self):
-        caches, cross = _wan_caches(self.pipeline)
-        if len(caches) != len(self.attentions) or any(c['k'].shape[1] != a.max_attention_size
-                                                   for c, a in zip(caches, self.attentions)):
-            raise ValueError('Self-Forcing KV capacity must match its configured local-attention window')
-        return caches, cross
-
-    @torch.inference_mode()
-    def refresh(self, history_rgb, history_times, indices, *, recent_start, conditional_dict):
-        caches, cross = self._caches()
-        indices = _selected_indices(history_rgb, history_times, indices, recent_start, self.max_references)
-        banks = (_wan_reference_banks(self.pipeline, history_rgb[indices], caches, cross, conditional_dict)
-                 if indices else None)
-        self.banks = banks
-        self.selected_indices = indices
-        self.timestamps = [float(history_times[i]) for i in indices]
-        return {'indices': indices, 'timestamps': self.timestamps, 'reference_count': len(indices)}
-
-    @torch.inference_mode()
-    def forward(self, *, noisy_image_or_video, conditional_dict, timestep, current_start, **kwargs):
-        caches, cross = self._caches()
-        native = dict(noisy_image_or_video=noisy_image_or_video, conditional_dict=conditional_dict,
-                      timestep=timestep, current_start=current_start, **kwargs)
-        if not self.banks:
-            return self.pipeline.generator(**native, kv_cache=caches, crossattn_cache=cross)
-        count = len(self.selected_indices)
-        prefix_tokens = count * self.pipeline.frame_seq_length
-        combined = []
-        for cache, (keys, values) in zip(caches, self.banks):
-            key = torch.cat(keys, dim=1).flatten(1, 2).to(cache['k'])
-            value = torch.cat(values, dim=1).flatten(1, 2).to(cache['v'])
-            combined.append({**cache, 'k': torch.cat((key, cache['k']), dim=1),
-                             'v': torch.cat((value, cache['v']), dim=1),
-                             'global_end_index': cache['global_end_index'].clone(),
-                             'local_end_index': cache['local_end_index'].clone() + prefix_tokens})
-        scratch_cross = [{**c, 'k': c['k'].clone(), 'v': c['v'].clone()} for c in cross]
-        settings = [(a.sink_size, a.max_attention_size) for a in self.attentions]
-        try:
-            for a, (sink, window) in zip(self.attentions, settings):
-                a.sink_size, a.max_attention_size = sink + count, window + prefix_tokens
-            result = self.pipeline.generator(**native, kv_cache=combined, crossattn_cache=scratch_cross)
-        finally:
-            for a, (sink, window) in zip(self.attentions, settings):
-                a.sink_size, a.max_attention_size = sink, window
-        for live, generated in zip(caches, combined):
-            live['k'].copy_(generated['k'][:, prefix_tokens:])
-            live['v'].copy_(generated['v'][:, prefix_tokens:])
-            live['global_end_index'].copy_(generated['global_end_index'])
-            live['local_end_index'].copy_(generated['local_end_index'] - prefix_tokens)
-        for live, generated in zip(cross, scratch_cross):
-            live['k'].copy_(generated['k'])
-            live['v'].copy_(generated['v'])
-            live['is_init'] = generated['is_init']
-        return result

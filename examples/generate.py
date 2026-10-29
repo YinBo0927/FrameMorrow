@@ -244,8 +244,9 @@ def main(backend):
             times = torch.tensor([[i / 16 for i in history]], dtype=torch.float64, device=device)
             selected, scores = selector.select(features[:len(history)][None].to(device),
                 features[len(history):][None].to(device), text_features, times, k=args.k)
+            kwargs = {'history_latent_indices': [frame // 4 for frame in history]} if backend == 'self-forcing' else {}
             selection = adapter.refresh(pixels[history], times[0].tolist(), selected[0],
-                recent_start=recent[0] / 16, conditional_dict=condition)
+                recent_start=recent[0] / 16, conditional_dict=condition, **kwargs)
             selection.update(chunk=index, frame_indices=[history[i] for i in selection["indices"]],
                              scores=scores[0, selected[0]].tolist(), candidate_count=len(history),
                              recent_start=recent[0] / 16, observed_until=now)
@@ -262,6 +263,8 @@ def main(backend):
                 pipe.kv_cache1, pipe.crossattn_cache = live_kv, live_cross
                 baseline.append(plain)
         clean = chunk(index, index >= args.warmup_chunks)
+        if backend == 'self-forcing':
+            adapter.capture(index * 3, clean.shape[1])
         pieces.append(clean)
         if index < args.warmup_chunks:
             baseline.append(clean)
