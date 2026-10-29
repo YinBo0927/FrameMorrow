@@ -186,8 +186,9 @@ def main(backend):
         rng = torch.Generator(device=device).manual_seed(args.seed + index)
         shape = (1, 3, 16, args.height // 8, args.width // 8)
         x = torch.randn(shape, generator=rng, device=device, dtype=dtype)
-        forward = adapter.forward if use_history else generator
-        kwargs = {} if use_history else {"kv_cache": pipe.kv_cache1, "crossattn_cache": pipe.crossattn_cache}
+        forward = adapter.forward if use_history or backend == 'longlive' else generator
+        kwargs = ({'use_history': use_history} if backend == 'longlive' else
+                  {} if use_history else {"kv_cache": pipe.kv_cache1, "crossattn_cache": pipe.crossattn_cache})
         for offset, step in enumerate(steps):
             t = torch.ones((1, 3), device=device, dtype=torch.int64) * step.item()
             _, clean = forward(noisy_image_or_video=x, conditional_dict=condition, timestep=t,
@@ -223,6 +224,9 @@ def main(backend):
             now = (len(pixels) - 1) / 16
             sampled = [round((.25 + .5 * i) * 16) for i in range(max(0, math.floor((now - .25) * 2) + 1))]
             history = [i for i in sampled if i / 16 <= now - 4]
+            if backend == 'longlive':
+                available = adapter.available_latent_indices()
+                history = [frame for frame in history if frame // 4 in available]
             recent = [i for i in sampled if i / 16 > now - 4]
             if len(history) > 128:
                 history = [history[round(i * (len(history) - 1) / 127)] for i in range(128)]
@@ -244,9 +248,9 @@ def main(backend):
             times = torch.tensor([[i / 16 for i in history]], dtype=torch.float64, device=device)
             selected, scores = selector.select(features[:len(history)][None].to(device),
                 features[len(history):][None].to(device), text_features, times, k=args.k)
-            kwargs = {'history_latent_indices': [frame // 4 for frame in history]} if backend == 'self-forcing' else {}
             selection = adapter.refresh(pixels[history], times[0].tolist(), selected[0],
-                recent_start=recent[0] / 16, conditional_dict=condition, **kwargs)
+                recent_start=recent[0] / 16, conditional_dict=condition,
+                history_latent_indices=[frame // 4 for frame in history])
             selection.update(chunk=index, frame_indices=[history[i] for i in selection["indices"]],
                              scores=scores[0, selected[0]].tolist(), candidate_count=len(history),
                              recent_start=recent[0] / 16, observed_until=now)

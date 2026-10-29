@@ -1,4 +1,4 @@
-"""Self-Forcing KV history and LongLive RGB reference conditioning.
+"""Self-Forcing and LongLive historical KV conditioning.
 
 Self-Forcing uses its stock rotated-K cache with a bounded local window.
 LongLive requires memory_indices and unrotated CPU history-bank hooks.
@@ -70,59 +70,17 @@ def _selected_indices(history_rgb, history_times, indices, recent_start, max_ref
     indices.sort(key=lambda i: history_times[i])
     return indices
 
-def _wan_reference_banks(pipeline, rgb, caches, cross, conditional_dict):
-    count, native = len(rgb), caches[0]['k']
-    latents = encode_wan_references(pipeline.vae, rgb).to(device=native.device, dtype=native.dtype)
-    patch = pipeline.generator.model.patch_size
-    if (latents.shape[-2] % patch[1] or latents.shape[-1] % patch[2] or patch[0] != 1):
-        raise ValueError('reference latent dimensions differ from native patch geometry')
-    frame_tokens = (latents.shape[-2] // patch[1]) * (latents.shape[-1] // patch[2])
-    if frame_tokens != pipeline.frame_seq_length:
-        raise ValueError('reference RGB resolution must match the native generation resolution')
-    if any(count * frame_tokens > cache['k'].shape[1] for cache in caches):
-        raise ValueError('reference prefill exceeds native context cache capacity')
-    scratch = [{
-        'k': cache['k'].new_zeros((1, count * frame_tokens, *cache['k'].shape[2:])),
-        'v': cache['v'].new_zeros((1, count * frame_tokens, *cache['v'].shape[2:])),
-        'global_end_index': torch.zeros_like(cache['global_end_index']),
-        'local_end_index': torch.zeros_like(cache['local_end_index']),
-        'cpu_k_frames': [], 'cpu_v_frames': [],
-    } for cache in caches]
-    scratch_cross = [{**cache, 'k': torch.zeros_like(cache['k']),
-                      'v': torch.zeros_like(cache['v']), 'is_init': False} for cache in cross]
-    for index in range(count):
-        kwargs = dict(
-            noisy_image_or_video=latents[:, index:index + 1],
-            conditional_dict=conditional_dict,
-            timestep=torch.zeros((1, 1), dtype=torch.int64, device=native.device),
-            kv_cache=scratch, crossattn_cache=scratch_cross,
-            current_start=index * frame_tokens)
-        if "memory_indices" in inspect.signature(pipeline.generator.forward).parameters:
-            kwargs["memory_indices"] = None
-        pipeline.generator(**kwargs)
-    banks = []
-    for cache in scratch:
-        if int(cache['local_end_index'].item()) != count * frame_tokens:
-            raise ValueError('native reference prefill did not retain every reference token')
-        k = cache['k'].reshape(1, count, frame_tokens, *cache['k'].shape[2:]).to('cpu', copy=True)
-        v = cache['v'].reshape(1, count, frame_tokens, *cache['v'].shape[2:]).to('cpu', copy=True)
-        if not torch.isfinite(k).all() or not torch.isfinite(v).all():
-            raise ValueError('native reference KV contains nonfinite values')
-        banks.append(([k[:, i:i + 1] for i in range(count)], [v[:, i:i + 1] for i in range(count)]))
-    return banks
-
 
 class LongLiveHistoryAdapter:
-    """Replace only the historical bank; leave live local/sink KV untouched.
+    """Select frames from the native unrotated historical KV bank.
 
-    refresh() consumes original RGB candidates, selector indices and timestamps.
+    refresh() maps selector indices to original latent frames and native bank indices.
     generator_kwargs() supplies the real memory_indices argument accepted by
     the LongLive generator. Pass it to BOTH denoising and clean-context cache updates.
     Disable the pipeline's old retrieval block so it does not overwrite these
     indices. Refresh again after a native cache reset or prompt change.
 
-    Initial implementation supports one rollout (batch=1). Original timestamps
-    remain in metadata; historical RoPE placement follows the native backend.
+    Supports one continuous rollout (batch=1) without resetting its native cache.
     """
     def __init__(self, pipeline):
         self.pipeline = pipeline
@@ -143,45 +101,93 @@ class LongLiveHistoryAdapter:
         self.max_references = min(attention.memory_size for attention in attentions)
         if self.max_references < 1:
             raise ValueError('configure a positive native memory_size')
+        sink_sizes = {attention.sink_size for attention in attentions}
+        if len(sink_sizes) != 1:
+            raise ValueError('all attention layers must use the same sink size')
+        self.sink_size = sink_sizes.pop()
+        self._seen_bank_size = 0
 
     def _caches(self):
         return _wan_caches(self.pipeline)
 
+    def available_latent_indices(self):
+        """Return global latent indices currently stored in every native KV bank."""
+        caches, _ = self._caches()
+        sizes = [(len(cache.get('cpu_k_frames', [])), len(cache.get('cpu_v_frames', []))) for cache in caches]
+        if len(set(sizes)) != 1 or sizes[0][0] != sizes[0][1]:
+            raise ValueError('native historical K/V banks must be aligned across layers')
+        size = sizes[0][0]
+        if size < self._seen_bank_size:
+            raise ValueError('native historical KV bank was reset; create a new adapter')
+        self._seen_bank_size = size
+        return range(self.sink_size, self.sink_size + size)
+
     @torch.inference_mode()
-    def refresh(self, history_rgb, history_times, indices, *, recent_start, conditional_dict):
-        caches, cross = self._caches()
+    def refresh(self, history_rgb, history_times, indices, *, recent_start, conditional_dict,
+                history_latent_indices):
+        caches, _ = self._caches()
+        available = self.available_latent_indices()
+        if len(history_latent_indices) != len(history_times):
+            raise ValueError('candidate latent indices must match candidate timestamps')
         indices = _selected_indices(history_rgb, history_times, indices, recent_start, self.max_references)
-        count = len(indices)
-        native = caches[0]['k']
-        banks = [([], []) for _ in caches]
-        memory_indices = None
-        if count:
-            banks = _wan_reference_banks(self.pipeline, history_rgb[indices], caches, cross, conditional_dict)
-            memory_indices = torch.arange(count, device=native.device)[None]
-        # Publish only after encoding and prefill succeed; never rewrite live k/v or counters.
-        for cache, (keys, values) in zip(caches, banks):
-            cache['cpu_k_frames'], cache['cpu_v_frames'] = keys, values
-            for name in ('_selected_gpu_signature', '_selected_gpu_k', '_selected_gpu_v'):
-                cache.pop(name, None)
-        self.memory_indices = memory_indices
+        selected_latents = [history_latent_indices[i] for i in indices]
+        if (any(isinstance(i, bool) or not isinstance(i, int) or i not in available for i in selected_latents)
+                or len(set(selected_latents)) != len(selected_latents)):
+            raise ValueError('selected frames must map to unique native historical KV entries')
+        self.memory_indices = (torch.tensor([[i - self.sink_size for i in selected_latents]],
+                                            device=caches[0]['k'].device, dtype=torch.long)
+                               if indices else None)
         self.selected_indices = indices
         self.timestamps = [float(history_times[i]) for i in indices]
-        return {'indices': indices, 'timestamps': self.timestamps, 'reference_count': count}
+        return {'indices': indices, 'timestamps': self.timestamps, 'reference_count': len(indices)}
 
     def generator_kwargs(self):
         """Extra kwargs for the native generator; existing cache/current_start kwargs stay unchanged."""
         caches, _ = self._caches()
         if self.memory_indices is not None:
-            count = self.memory_indices.shape[1]
-            if any(min(len(cache['cpu_k_frames']), len(cache['cpu_v_frames'])) < count for cache in caches):
-                raise ValueError('native history bank was reset; refresh selected references before generation')
+            available = self.available_latent_indices()
+            if int(self.memory_indices.max()) >= len(available):
+                raise ValueError('selected historical KV is no longer available')
         return {'memory_indices': self.memory_indices}
 
     @torch.inference_mode()
-    def forward(self, *, noisy_image_or_video, conditional_dict, timestep, current_start, **kwargs):
+    def forward(self, *, noisy_image_or_video, conditional_dict, timestep, current_start,
+                use_history=True, **kwargs):
         """Forward through LongLive with the selected history attached."""
-        return self.pipeline.generator(
+        caches, cross = self._caches()
+        # The upstream CPU path offloads views into a temporary cache that it then rolls.
+        # Preserve the evicted entries before that roll; GPU-to-CPU offload already copies.
+        evicted = []
+        tokens = self.pipeline.frame_seq_length
+        new_tokens = noisy_image_or_video.shape[1] * tokens
+        for cache in caches:
+            count = 0
+            if (cache['k'].device.type == 'cpu' and current_start + new_tokens > int(cache['global_end_index'])
+                    and new_tokens + int(cache['local_end_index']) > cache['k'].shape[1]):
+                count = new_tokens + int(cache['local_end_index']) - cache['k'].shape[1]
+            if count:
+                if count % tokens:
+                    raise ValueError('evicted KV does not align with latent frames')
+                start = self.sink_size * tokens
+                shape = (1, count // tokens, tokens, *cache['k'].shape[2:])
+                k = cache['k'][:, start:start + count].reshape(shape).clone()
+                v = cache['v'][:, start:start + count].reshape(shape).clone()
+                evicted.append((len(cache.get('cpu_k_frames', [])),
+                                [k[:, i:i + 1] for i in range(count // tokens)],
+                                [v[:, i:i + 1] for i in range(count // tokens)]))
+            else:
+                evicted.append(None)
+        result = self.pipeline.generator(
             noisy_image_or_video=noisy_image_or_video, conditional_dict=conditional_dict,
             timestep=timestep, current_start=current_start,
-            kv_cache=self.pipeline.kv_cache1, crossattn_cache=self.pipeline.crossattn_cache,
-            **self.generator_kwargs(), **kwargs)
+            kv_cache=caches, crossattn_cache=cross,
+            **(self.generator_kwargs() if use_history else {'memory_indices': None}), **kwargs)
+        for cache, saved in zip(caches, evicted):
+            if saved is not None:
+                old_size, keys, values = saved
+                if (len(cache['cpu_k_frames']) != old_size + len(keys) or
+                        len(cache['cpu_v_frames']) != old_size + len(values)):
+                    raise ValueError('native LongLive history bank did not append the evicted KV')
+                cache['cpu_k_frames'][old_size:] = keys
+                cache['cpu_v_frames'][old_size:] = values
+        return result
