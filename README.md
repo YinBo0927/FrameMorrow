@@ -4,10 +4,10 @@
 
 **Future-Guided Frame Selection with Prospective Tokens for Long-Horizon Video Generation**
 
-[![arXiv](https://img.shields.io/badge/arXiv-2609.38839-b31b1b.svg)](https://arxiv.org/abs/2609.38839)
-[![Project](https://img.shields.io/badge/Project-Page-4d8199.svg)](https://yinbo0927.github.io/FrameMorrow/)
-![Hugging Face Daily Papers #2](https://img.shields.io/badge/Hugging%20Face-Daily%20Papers%20%232-ffbd45.svg)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![arXiv](https://img.shields.io/badge/arXiv-2609.38839-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2609.38839)
+[![Project](https://img.shields.io/badge/Project-Page-4d8199.svg?logo=githubpages&logoColor=white)](https://yinbo0927.github.io/FrameMorrow/)
+![Hugging Face Daily Papers #2](https://img.shields.io/badge/Hugging%20Face-Daily%20Papers%20%232-ffbd45.svg?logo=huggingface&logoColor=white)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
 <p>Bo Yin<sup>1</sup>, Xiaobin Hu<sup>1</sup>, Jiaqi Zhao<sup>1,2</sup>, Shuicheng Yan<sup>1</sup></p>
 
